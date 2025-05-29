@@ -264,7 +264,10 @@ export default function Home() {
           />
         </div>
       </div>
-      <GeneratedNotesCard generatedNotes={generatedNotes} />
+      <GeneratedNotesCard
+        generatedNotes={generatedNotes}
+        isWaiting={isGenerating && !generatedNotes}
+      />
     </main>
   )
 }

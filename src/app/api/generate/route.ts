@@ -28,6 +28,8 @@ export async function POST(req: Request) {
     ): Promise<Partial<typeof GraphState.State>> {
       const { messages } = state
 
+      console.log('[changeExtractor] STARTED')
+
       const responseSchema = z.object({
         facts: z.array(
           z.object({
@@ -50,27 +52,39 @@ export async function POST(req: Request) {
       const prompt = ChatPromptTemplate.fromMessages([
         [
           'system',
-          `You are a helpful assistant that whose job is to extract a list of facts from a given diff.
+          `You are a helpful assistant that whose job is to extract a list of facts from a given diff. These facts will be used to generate release notes for a given diff.
+           An example of a fact: 
+           - id: 1
+           - category: performance
+           - description: Improved performance by 20% (should be in-depth and detailed)
+          
+           Here are some details about the diff:\n
+           - {description}
+           - {labels}
                 
-          Here is the diff:\n\n
-          {diff}
-      
-          You must use the response tool to return the list of facts.
+           Here is the diff:\n
+           {diff}
+       
+           You must use the response tool to return the list of facts.
           `,
         ],
       ])
 
       const model = new ChatOpenAI({
-        model: 'gpt-4o',
+        model: 'gpt-4.1',
         temperature: 0,
         openAIApiKey: process.env.OPENAI_API_KEY,
       }).bindTools([finalResponseTool], {
         tool_choice: finalResponseTool.name,
       })
 
-      const response = await prompt.pipe(model).invoke({ diff: lastMessage })
+      const response = await prompt.pipe(model).invoke({
+        diff: lastMessage,
+        description: description,
+        labels: labels,
+      })
 
-      console.log('---CHANGES EXTRACTED---')
+      console.log('[changeExtractor] COMPLETED')
 
       return {
         messages: [response],
@@ -81,6 +95,8 @@ export async function POST(req: Request) {
       state: typeof GraphState.State
     ): Promise<Partial<typeof GraphState.State>> {
       const { messages } = state
+
+      console.log('[devDrafter] STARTED')
 
       // Last message must be a tool call
       const lastMessage = messages[messages.length - 1]
@@ -98,8 +114,6 @@ export async function POST(req: Request) {
           `You are a helpful assistant that drafts release notes for a given diff and list of facts.
            The release notes should be developer oriented and should focus on the _what_ and _why_ of the change (e.g., "Refactored useFetchDiffs hook to use useSWR for improved caching and reduced re-renders.").
            
-           Here is the diff:
-           {diff}
            Here is the list of facts:
            {facts}
           `
@@ -112,11 +126,10 @@ export async function POST(req: Request) {
         })
 
         const response = await prompt.pipe(model).invoke({
-          diff: messages[0].content,
           facts: facts,
         })
 
-        console.log('---DEVELOPER DRAFTED---')
+        console.log('[devDrafter] COMPLETED')
 
         return {
           messages: [response],
@@ -132,6 +145,8 @@ export async function POST(req: Request) {
       state: typeof GraphState.State
     ): Promise<Partial<typeof GraphState.State>> {
       const { messages } = state
+
+      console.log('[marketingDrafter] STARTED')
 
       // Last message must be a tool call
       const lastMessage = messages[messages.length - 1]
@@ -149,8 +164,10 @@ export async function POST(req: Request) {
           `You are a helpful assistant that drafts release notes for a given diff and list of facts.
            The release notes should be marketing oriented and user-centric, highlight the _benefit_ of the change, and use simpler language (e.g., "Loading pull requests is now faster and smoother thanks to improved data fetching!").
            
-           Here is the diff:
-           {diff}
+           These are user-facing release notes. They should be written in a way that is easy to understand and use. Omit any details that might not be relevant to the user.
+
+           The notes should have an introduction, the main content, and a short conclusion.
+
            Here is the list of facts:
            {facts}
           `
@@ -163,11 +180,10 @@ export async function POST(req: Request) {
         })
 
         const response = await prompt.pipe(model).invoke({
-          diff: messages[0].content,
           facts: facts,
         })
 
-        console.log('---MARKETING DRAFTED---')
+        console.log('[marketingDrafter] COMPLETED')
 
         return {
           messages: [response],
@@ -183,6 +199,8 @@ export async function POST(req: Request) {
       state: typeof GraphState.State
     ): Promise<Partial<typeof GraphState.State>> {
       const { messages } = state
+
+      console.log('[auditor] STARTED')
 
       const responseSchema = z.object({
         passed: z.boolean().describe('The result of the audit'),
@@ -253,7 +271,7 @@ export async function POST(req: Request) {
           facts: facts,
         })
 
-        console.log('---AUDITED---')
+        console.log('[auditor] COMPLETED')
 
         return {
           messages: [response],
@@ -269,6 +287,8 @@ export async function POST(req: Request) {
       state: typeof GraphState.State
     ): Promise<Partial<typeof GraphState.State>> {
       const { messages } = state
+
+      console.log('[assembler] STARTED')
 
       const lastMessage = messages[messages.length - 1]
 
@@ -306,7 +326,7 @@ export async function POST(req: Request) {
           marketingNotes: marketingNotes,
         })
 
-        console.log('---ASSEMBLED---')
+        console.log('[assembler] COMPLETED')
 
         return {
           messages: [response],
@@ -347,11 +367,8 @@ export async function POST(req: Request) {
       .addConditionalEdges('assembler', (state: typeof GraphState.State) => {
         const { messages } = state
         const lastMessage = messages[messages.length - 1]
-        if (
-          'tool_calls' in lastMessage &&
-          Array.isArray((lastMessage as any).tool_calls) &&
-          (lastMessage as any).tool_calls.length
-        ) {
+        // Check if we have a valid content in the message
+        if (lastMessage && 'content' in lastMessage && lastMessage.content) {
           return END
         }
         return 'error'
