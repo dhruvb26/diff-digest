@@ -20,8 +20,10 @@ export default function PRDetailsCard({
   if (!selectedDiff) {
     return (
       <div className="h-full">
-        <div className="flex gap-2 items-center w-full justify-between">
-          <h2 className="text-xl font-semibold mb-4">PR Diff Details</h2>
+        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center w-full justify-between">
+          <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">
+            PR Diff Details
+          </h2>
         </div>
         <p className="text-muted-foreground">
           Select a pull request to view details.
@@ -32,10 +34,13 @@ export default function PRDetailsCard({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex gap-2 items-center w-full justify-between">
-        <h2 className="text-xl font-semibold mb-4">PR Diff Details</h2>
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center w-full justify-between">
+        <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">
+          PR Diff Details
+        </h2>
         <Button
           variant="outline"
+          className="w-full sm:w-auto"
           onClick={() => window.open(selectedDiff.url, '_blank')}
         >
           <ArrowUpRight className="w-4 h-4" />
@@ -55,11 +60,19 @@ export default function PRDetailsCard({
             : 'no labels found'}
         </p>
       </div>
-      <div className="flex gap-2 w-full justify-end mt-4">
-        <Button onClick={onGenerate} disabled={isGenerating}>
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:justify-end mt-4">
+        <Button
+          className="w-full sm:w-auto"
+          onClick={onGenerate}
+          disabled={isGenerating}
+        >
           {isGenerating ? 'Generating...' : 'Generate Release Notes'}
         </Button>
-        {isGenerating && <Button onClick={onStop}>Stop</Button>}
+        {isGenerating && (
+          <Button className="w-full sm:w-auto" onClick={onStop}>
+            Stop
+          </Button>
+        )}
       </div>
     </div>
   )

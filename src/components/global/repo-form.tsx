@@ -35,10 +35,10 @@ export default function RepoForm({
   })
 
   return (
-    <div className="flex flex-row items-end">
+    <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-0 w-full sm:w-auto">
       {nextPage && !isLoading && onLoadMore && (
         <Button
-          className="mr-6"
+          className="w-full sm:w-auto sm:mr-6"
           variant={'outline'}
           onClick={onLoadMore}
           disabled={isLoading}
@@ -51,13 +51,13 @@ export default function RepoForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-x-8 flex flex-row items-end"
+          className="flex flex-col sm:flex-row gap-4 sm:gap-8 w-full"
         >
           <FormField
             control={form.control}
             name="repo"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex-1">
                 <FormLabel>Repo</FormLabel>
                 <FormControl>
                   <Input
@@ -74,7 +74,7 @@ export default function RepoForm({
             control={form.control}
             name="owner"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex-1">
                 <FormLabel>Owner</FormLabel>
                 <FormControl>
                   <Input autoComplete="off" placeholder="openai" {...field} />
@@ -83,7 +83,11 @@ export default function RepoForm({
               </FormItem>
             )}
           />
-          <Button disabled={isLoading} type="submit">
+          <Button
+            className="w-full sm:w-auto"
+            disabled={isLoading}
+            type="submit"
+          >
             {isLoading ? 'Fetching...' : 'Fetch'}
           </Button>
         </form>

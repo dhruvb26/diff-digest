@@ -133,8 +133,8 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-12 sm:p-24 space-y-4">
-      <div className="flex flex-row items-end justify-between mb-12 w-full">
+    <main className="flex min-h-screen flex-col items-center p-4 sm:p-12 md:p-24 space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-6 sm:mb-12 w-full gap-4 sm:gap-0">
         <div className="flex flex-row items-center">
           <Image src="/logo-black.svg" alt="a0" width={35} height={35} />
           <span className="text-[22px] font-normal ml-1">a0 diff digest</span>
@@ -146,8 +146,8 @@ export default function Home() {
           onLoadMore={handleLoadMoreClick}
         />
       </div>
-      <div className="flex w-full space-x-4">
-        <div className="w-1/2 border border-border rounded-lg p-6 h-[40vh] bg-card overflow-y-auto">
+      <div className="flex flex-col lg:flex-row w-full space-y-4 lg:space-y-0 lg:space-x-4">
+        <div className="w-full lg:w-1/2 border border-border rounded-lg p-4 sm:p-6 h-[40vh] bg-card overflow-y-auto">
           <h2 className="text-xl font-semibold mb-4">Merged Pull Requests</h2>
 
           {error && (
@@ -186,7 +186,7 @@ export default function Home() {
             </ul>
           )}
         </div>
-        <div className="w-1/2 border border-border rounded-lg p-6 h-[40vh] bg-card">
+        <div className="w-full lg:w-1/2 border border-border rounded-lg p-4 sm:p-6 h-[40vh] bg-card">
           <PRDetailsCard
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
