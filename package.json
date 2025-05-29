@@ -19,6 +19,7 @@
     "clsx": "^2.1.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.0",
+    "gitdiff-parser": "^0.3.1",
     "lucide-react": "^0.503.0",
     "next": "15.3.1",
     "openai": "^4.96.0",
@@ -26,6 +27,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
+    "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.2.0",
     "zod": "^3.25.36",
     "zustand": "^5.0.5"

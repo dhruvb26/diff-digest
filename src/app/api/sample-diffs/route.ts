@@ -70,6 +70,7 @@ export async function GET(request: Request) {
           id: pr.number.toString(), // Use PR number as ID
           description: pr.title,
           diff: diffText,
+          labels: pr.labels,
           url: pr.html_url, // Add the PR URL for context
         }
       } catch (diffError) {

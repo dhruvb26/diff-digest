@@ -13,10 +13,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { useDiffStore } from '@/store/diff-store'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { formSchema } from '@/types/schemas'
+import { z } from 'zod'
 import Image from 'next/image'
+import PRDetailsCard from '@/components/global/pr-details-card'
+import GeneratedNotesCard from '@/components/global/generated-notes-card'
 
 export default function Home() {
   const [diffs, setDiffs] = useState<DiffItem[]>([])
@@ -26,6 +29,8 @@ export default function Home() {
   const [nextPage, setNextPage] = useState<number | null>(null)
   const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false)
   const { setSelectedDiff } = useDiffStore()
+  const [isGenerating, setIsGenerating] = useState<boolean>(false)
+  const [generatedNotes, setGeneratedNotes] = useState<string>('')
 
   const fetchDiffs = async (
     page: number,
@@ -74,11 +79,6 @@ export default function Home() {
     }
   }
 
-  const formSchema = z.object({
-    repo: z.string(),
-    owner: z.string(),
-  })
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,13 +87,21 @@ export default function Home() {
     },
   })
 
+  const handleGenerate = async () => {
+    console.log('generate')
+  }
+
+  const stopGenerate = () => {
+    console.log('stop')
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center p-12 sm:p-24 space-y-4">
       <div className="flex flex-row items-end justify-between mb-12 w-full">
         <div className="flex flex-row items-center">
           <Image src="/logo-black.svg" alt="a0" width={35} height={35} />
 
-          <span className="text-[22px] font-normal">'s diff digest</span>
+          <span className="text-[22px] font-normal ml-1">a0 diff digest</span>
         </div>
         <div className="flex flex-row items-end">
           {nextPage && !isLoading && (
@@ -157,7 +165,7 @@ export default function Home() {
         </div>
       </div>
       <div className="flex w-full space-x-4">
-        <div className="w-1/2 border border-border rounded-lg p-6 h-[70vh] bg-card overflow-y-auto">
+        <div className="w-1/2 border border-border rounded-lg p-6 h-[40vh] bg-card overflow-y-auto">
           <h2 className="text-xl font-semibold mb-4">Merged Pull Requests</h2>
 
           {error && (
@@ -196,7 +204,15 @@ export default function Home() {
             </ul>
           )}
         </div>
+        <div className="w-1/2 border border-border rounded-lg p-6 h-[40vh] bg-card">
+          <PRDetailsCard
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            onStop={stopGenerate}
+          />
+        </div>
       </div>
+      <GeneratedNotesCard generatedNotes={generatedNotes} />
     </main>
   )
 }
