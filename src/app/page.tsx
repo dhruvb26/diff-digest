@@ -1,6 +1,6 @@
 'use client' // Mark as a Client Component
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { DiffItem, ApiResponse } from '@/types/global'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +20,7 @@ import { z } from 'zod'
 import Image from 'next/image'
 import PRDetailsCard from '@/components/global/pr-details-card'
 import GeneratedNotesCard from '@/components/global/generated-notes-card'
+import { tryCatch } from '@/utils/try-catch'
 
 export default function Home() {
   const [diffs, setDiffs] = useState<DiffItem[]>([])
@@ -31,6 +32,8 @@ export default function Home() {
   const { setSelectedDiff } = useDiffStore()
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [generatedNotes, setGeneratedNotes] = useState<string>('')
+  const abortCtrl = useRef<AbortController | null>(null)
+  const selectedDiff = useDiffStore((state) => state.selectedDiff)
 
   const fetchDiffs = async (
     page: number,
@@ -38,34 +41,38 @@ export default function Home() {
   ) => {
     setIsLoading(true)
     setError(null)
-    try {
-      const response = await fetch(
-        `/api/sample-diffs?page=${page}&per_page=10&repo=${values.repo}&owner=${values.owner}`
-      )
-      if (!response.ok) {
-        let errorMsg = `HTTP error! status: ${response.status}`
-        try {
-          const errorData = await response.json()
-          errorMsg = errorData.error || errorData.details || errorMsg
-        } catch {
-          // Ignore if response body is not JSON
-          console.warn('Failed to parse error response as JSON')
-        }
-        throw new Error(errorMsg)
-      }
-      const data: ApiResponse = await response.json()
 
+    const result = await tryCatch(
+      fetch(
+        `/api/sample-diffs?page=${page}&per_page=10&repo=${values.repo}&owner=${values.owner}`
+      ).then(async (response) => {
+        if (!response.ok) {
+          let errorMsg = `HTTP error! status: ${response.status}`
+          try {
+            const errorData = await response.json()
+            errorMsg = errorData.error || errorData.details || errorMsg
+          } catch {
+            console.warn('Failed to parse error response as JSON')
+          }
+          throw new Error(errorMsg)
+        }
+        return response.json()
+      })
+    )
+
+    if (result.error) {
+      setError(result.error.message)
+    } else {
+      const data = result.data as ApiResponse
       setDiffs((prevDiffs) =>
         page === 1 ? data.diffs : [...prevDiffs, ...data.diffs]
       )
       setCurrentPage(data.currentPage)
       setNextPage(data.nextPage)
       if (!initialFetchDone) setInitialFetchDone(true)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred')
-    } finally {
-      setIsLoading(false)
     }
+
+    setIsLoading(false)
   }
 
   const handleFetchClick = (values: z.infer<typeof formSchema>) => {
@@ -88,11 +95,56 @@ export default function Home() {
   })
 
   const handleGenerate = async () => {
-    console.log('generate')
+    if (!selectedDiff) return
+    setIsGenerating(true)
+    setGeneratedNotes('')
+    abortCtrl.current = new AbortController()
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diff: selectedDiff.diff,
+          messages: [],
+          id: selectedDiff.id,
+          description: selectedDiff.description,
+          labels: selectedDiff.labels,
+        }),
+        signal: abortCtrl.current.signal,
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        setGeneratedNotes(`Error: ${errorText}`)
+      } else {
+        const reader = response.body?.getReader()
+        if (!reader) {
+          setGeneratedNotes('Error: no reader')
+        } else {
+          const decoder = new TextDecoder()
+          let done = false
+          while (!done) {
+            const { value, done: doneReading } = await reader.read()
+            done = doneReading
+            if (value) {
+              const chunk = decoder.decode(value)
+              setGeneratedNotes((prev) => prev + chunk)
+            }
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User aborted generation, keep existing notes
+      } else {
+        setGeneratedNotes(err instanceof Error ? err.message : 'Unknown error')
+      }
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const stopGenerate = () => {
-    console.log('stop')
+    abortCtrl.current?.abort()
   }
 
   return (
