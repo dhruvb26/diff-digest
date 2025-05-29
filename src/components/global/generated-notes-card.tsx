@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 interface GeneratedNotesCardProps {
   generatedNotes: string
 }
+
 export default function GeneratedNotesCard({
   generatedNotes,
 }: GeneratedNotesCardProps) {
@@ -17,7 +18,19 @@ export default function GeneratedNotesCard({
         <div
           className={`prose prose-sm dark:prose-invert whitespace-pre-wrap max-w-none break-words ${isError ? 'text-red-600 dark:text-red-400' : ''}`}
         >
-          <ReactMarkdown>{generatedNotes}</ReactMarkdown>
+          <ReactMarkdown
+            components={{
+              code: function Code({ children }) {
+                return (
+                  <code className="bg-muted px-1.5 py-0.5 rounded-sm font-mono text-sm">
+                    {children}
+                  </code>
+                )
+              },
+            }}
+          >
+            {generatedNotes}
+          </ReactMarkdown>
         </div>
       ) : (
         <p className="text-muted-foreground">No generated notes yet.</p>
