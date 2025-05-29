@@ -20,6 +20,7 @@ export default function GeneratedNotesCard({
       await navigator.clipboard.writeText(generatedNotes)
       toast.success('Copied to clipboard')
     } catch (err) {
+      console.error(err)
       toast.error('Failed to copy to clipboard')
     }
   }

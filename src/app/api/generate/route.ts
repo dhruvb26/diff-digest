@@ -1,5 +1,4 @@
-import { Annotation, StateGraph } from '@langchain/langgraph'
-import { END, START } from '@langchain/langgraph'
+import { Annotation, StateGraph, END, START } from '@langchain/langgraph'
 import { z } from 'zod'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { ChatOpenAI } from '@langchain/openai'
@@ -12,6 +11,8 @@ export async function POST(req: Request) {
     const { diff, id, description, labels } = requestSchema.parse(
       await req.json()
     )
+
+    console.log('[generate] STARTED', id)
 
     // Global GraphState to be used across all nodes
     const GraphState = Annotation.Root({
@@ -343,6 +344,7 @@ export async function POST(req: Request) {
       state: typeof GraphState.State
     ): Promise<Partial<typeof GraphState.State>> {
       // Reply with an error message when tool calls are missing
+      console.error('[errorNode] ERROR', state)
       return {
         messages: [new AIMessage('Generation Failed please try again')],
       }

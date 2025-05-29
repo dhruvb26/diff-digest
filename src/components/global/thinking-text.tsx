@@ -17,7 +17,7 @@ function ThinkingText() {
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [sentences.length])
 
   return (
     <TextShimmer
