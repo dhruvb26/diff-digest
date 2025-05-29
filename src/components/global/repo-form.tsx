@@ -51,13 +51,13 @@ export default function RepoForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col sm:flex-row gap-4 sm:gap-8 w-full"
+          className="flex flex-col sm:flex-row items-end gap-4 sm:gap-8 w-full"
         >
           <FormField
             control={form.control}
             name="repo"
             render={({ field }) => (
-              <FormItem className="flex-1">
+              <FormItem className="flex-1 w-full sm:w-auto">
                 <FormLabel>Repo</FormLabel>
                 <FormControl>
                   <Input
@@ -74,7 +74,7 @@ export default function RepoForm({
             control={form.control}
             name="owner"
             render={({ field }) => (
-              <FormItem className="flex-1">
+              <FormItem className="flex-1 w-full sm:w-auto">
                 <FormLabel>Owner</FormLabel>
                 <FormControl>
                   <Input autoComplete="off" placeholder="openai" {...field} />
@@ -84,7 +84,7 @@ export default function RepoForm({
             )}
           />
           <Button
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto self-end"
             disabled={isLoading}
             type="submit"
           >
