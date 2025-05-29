@@ -2,31 +2,20 @@
 
 import { useState, useRef } from 'react'
 import { DiffItem, ApiResponse } from '@/types/global'
-import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { useForm } from 'react-hook-form'
 import { useDiffStore } from '@/store/diff-store'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { formSchema } from '@/types/schemas'
 import { z } from 'zod'
 import Image from 'next/image'
 import PRDetailsCard from '@/components/global/pr-details-card'
 import GeneratedNotesCard from '@/components/global/generated-notes-card'
 import { tryCatch } from '@/utils/try-catch'
+import RepoForm from '@/components/global/repo-form'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   const [diffs, setDiffs] = useState<DiffItem[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState<number>(1)
   const [nextPage, setNextPage] = useState<number | null>(null)
   const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false)
   const { setSelectedDiff } = useDiffStore()
@@ -34,6 +23,10 @@ export default function Home() {
   const [generatedNotes, setGeneratedNotes] = useState<string>('')
   const abortCtrl = useRef<AbortController | null>(null)
   const selectedDiff = useDiffStore((state) => state.selectedDiff)
+  const [formValues, setFormValues] = useState<z.infer<typeof formSchema>>({
+    repo: 'openai-node',
+    owner: 'openai',
+  })
 
   const fetchDiffs = async (
     page: number,
@@ -67,7 +60,6 @@ export default function Home() {
       setDiffs((prevDiffs) =>
         page === 1 ? data.diffs : [...prevDiffs, ...data.diffs]
       )
-      setCurrentPage(data.currentPage)
       setNextPage(data.nextPage)
       if (!initialFetchDone) setInitialFetchDone(true)
     }
@@ -76,23 +68,16 @@ export default function Home() {
   }
 
   const handleFetchClick = (values: z.infer<typeof formSchema>) => {
+    setFormValues(values)
     setDiffs([]) // Clear existing diffs when fetching the first page again
     fetchDiffs(1, values)
   }
 
   const handleLoadMoreClick = () => {
     if (nextPage) {
-      fetchDiffs(nextPage, form.getValues())
+      fetchDiffs(nextPage, formValues)
     }
   }
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      repo: 'openai-node',
-      owner: 'openai',
-    },
-  })
 
   const handleGenerate = async () => {
     if (!selectedDiff) return
@@ -152,69 +137,14 @@ export default function Home() {
       <div className="flex flex-row items-end justify-between mb-12 w-full">
         <div className="flex flex-row items-center">
           <Image src="/logo-black.svg" alt="a0" width={35} height={35} />
-
           <span className="text-[22px] font-normal ml-1">a0 diff digest</span>
         </div>
-        <div className="flex flex-row items-end">
-          {nextPage && !isLoading && (
-            <Button
-              className="mr-6"
-              variant={'outline'}
-              onClick={handleLoadMoreClick}
-              disabled={isLoading}
-            >
-              {isLoading && currentPage > 1
-                ? 'Loading more...'
-                : `Load More (Page ${nextPage})`}
-            </Button>
-          )}
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) => handleFetchClick(values))}
-              className="space-x-8 flex flex-row items-end"
-            >
-              <FormField
-                control={form.control}
-                name="repo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Repo</FormLabel>
-                    <FormControl>
-                      <Input
-                        autoComplete="off"
-                        placeholder="openai-node"
-                        {...field}
-                      />
-                    </FormControl>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="owner"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner</FormLabel>
-                    <FormControl>
-                      <Input
-                        autoComplete="off"
-                        placeholder="openai"
-                        {...field}
-                      />
-                    </FormControl>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button disabled={isLoading} type="submit">
-                {isLoading ? 'Fetching...' : 'Fetch'}
-              </Button>
-            </form>
-          </Form>
-        </div>
+        <RepoForm
+          onSubmit={handleFetchClick}
+          isLoading={isLoading}
+          nextPage={nextPage}
+          onLoadMore={handleLoadMoreClick}
+        />
       </div>
       <div className="flex w-full space-x-4">
         <div className="w-1/2 border border-border rounded-lg p-6 h-[40vh] bg-card overflow-y-auto">
@@ -244,9 +174,9 @@ export default function Home() {
               {diffs.map((item) => (
                 <li key={item.id} className="text-muted-foreground">
                   <Button
+                    variant="link"
                     className="px-0 text-blue-500 hover:text-blue-600"
                     onClick={() => setSelectedDiff(item)}
-                    variant="link"
                   >
                     PR #{item.id}:
                   </Button>
