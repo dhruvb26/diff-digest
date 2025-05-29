@@ -1,76 +1,72 @@
-"use client"; // Mark as a Client Component
+'use client' // Mark as a Client Component
 
-import { useState } from "react";
+import { useState } from 'react'
 
 // Define the expected structure of a diff object
 interface DiffItem {
-  id: string;
-  description: string;
-  diff: string;
-  url: string; // Added URL field
+  id: string
+  description: string
+  diff: string
+  url: string // Added URL field
 }
 
 // Define the expected structure of the API response
 interface ApiResponse {
-  diffs: DiffItem[];
-  nextPage: number | null;
-  currentPage: number;
-  perPage: number;
+  diffs: DiffItem[]
+  nextPage: number | null
+  currentPage: number
+  perPage: number
 }
 
 export default function Home() {
-  const [diffs, setDiffs] = useState<DiffItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [nextPage, setNextPage] = useState<number | null>(null);
-  const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false);
+  const [diffs, setDiffs] = useState<DiffItem[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [nextPage, setNextPage] = useState<number | null>(null)
+  const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false)
 
   const fetchDiffs = async (page: number) => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
-      const response = await fetch(
-        `/api/sample-diffs?page=${page}&per_page=10`
-      );
+      const response = await fetch(`/api/sample-diffs?page=${page}&per_page=10`)
       if (!response.ok) {
-        let errorMsg = `HTTP error! status: ${response.status}`;
+        let errorMsg = `HTTP error! status: ${response.status}`
         try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorData.details || errorMsg;
+          const errorData = await response.json()
+          errorMsg = errorData.error || errorData.details || errorMsg
         } catch {
           // Ignore if response body is not JSON
-          console.warn("Failed to parse error response as JSON");
+          console.warn('Failed to parse error response as JSON')
         }
-        throw new Error(errorMsg);
+        throw new Error(errorMsg)
       }
-      const data: ApiResponse = await response.json();
+      const data: ApiResponse = await response.json()
 
       setDiffs((prevDiffs) =>
         page === 1 ? data.diffs : [...prevDiffs, ...data.diffs]
-      );
-      setCurrentPage(data.currentPage);
-      setNextPage(data.nextPage);
-      if (!initialFetchDone) setInitialFetchDone(true);
+      )
+      setCurrentPage(data.currentPage)
+      setNextPage(data.nextPage)
+      if (!initialFetchDone) setInitialFetchDone(true)
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleFetchClick = () => {
-    setDiffs([]); // Clear existing diffs when fetching the first page again
-    fetchDiffs(1);
-  };
+    setDiffs([]) // Clear existing diffs when fetching the first page again
+    fetchDiffs(1)
+  }
 
   const handleLoadMoreClick = () => {
     if (nextPage) {
-      fetchDiffs(nextPage);
+      fetchDiffs(nextPage)
     }
-  };
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-12 sm:p-24">
@@ -85,8 +81,8 @@ export default function Home() {
             disabled={isLoading}
           >
             {isLoading && currentPage === 1
-              ? "Fetching..."
-              : "Fetch Latest Diffs"}
+              ? 'Fetching...'
+              : 'Fetch Latest Diffs'}
           </button>
         </div>
 
@@ -152,5 +148,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-  );
+  )
 }
