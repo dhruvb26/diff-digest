@@ -1,6 +1,6 @@
 'use client' // Mark as a Client Component
 
-import { useState, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { DiffItem, ApiResponse } from '@/types/global'
 import { useDiffStore } from '@/store/diff-store'
 import { formSchema } from '@/types/schemas'
@@ -21,7 +21,6 @@ export default function Home() {
   const { setSelectedDiff } = useDiffStore()
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [generatedNotes, setGeneratedNotes] = useState<string>('')
-  const abortCtrl = useRef<AbortController | null>(null)
   const selectedDiff = useDiffStore((state) => state.selectedDiff)
   const [formValues, setFormValues] = useState<z.infer<typeof formSchema>>({
     repo: 'openai-node',
@@ -79,57 +78,63 @@ export default function Home() {
     }
   }
 
-  const handleGenerate = async () => {
-    if (!selectedDiff) return
-    setIsGenerating(true)
-    setGeneratedNotes('')
-    abortCtrl.current = new AbortController()
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          diff: selectedDiff.diff,
-          messages: [],
-          id: selectedDiff.id,
-          description: selectedDiff.description,
-          labels: selectedDiff.labels,
-        }),
-        signal: abortCtrl.current.signal,
-      })
-      if (!response.ok) {
-        const errorText = await response.text()
-        setGeneratedNotes(`Error: ${errorText}`)
-      } else {
-        const reader = response.body?.getReader()
-        if (!reader) {
-          setGeneratedNotes('Error: no reader')
-        } else {
-          const decoder = new TextDecoder()
-          let done = false
-          while (!done) {
-            const { value, done: doneReading } = await reader.read()
-            done = doneReading
-            if (value) {
-              const chunk = decoder.decode(value)
-              setGeneratedNotes((prev) => prev + chunk)
-            }
-          }
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        console.log('Service Worker registered', registration)
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'getState' })
         }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // User aborted generation, keep existing notes
-      } else {
-        setGeneratedNotes(err instanceof Error ? err.message : 'Unknown error')
-      }
-    } finally {
-      setIsGenerating(false)
+      })
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        const data = event.data
+        if (!data || typeof data !== 'object') return
+        switch (data.type) {
+          case 'state':
+            setGeneratedNotes(data.bufferedChunks.join(''))
+            setIsGenerating(data.running)
+            break
+          case 'chunk':
+            setGeneratedNotes((prev) => prev + data.chunk)
+            break
+          case 'started':
+            setGeneratedNotes('')
+            setIsGenerating(true)
+            break
+          case 'done':
+            setIsGenerating(false)
+            break
+          case 'error':
+            setGeneratedNotes(`Error: ${data.error}`)
+            setIsGenerating(false)
+            break
+        }
+      })
     }
+  }, [])
+
+  const handleGenerate = () => {
+    if (
+      !selectedDiff ||
+      !('serviceWorker' in navigator) ||
+      !navigator.serviceWorker.controller
+    )
+      return
+    navigator.serviceWorker.controller.postMessage({
+      type: 'start',
+      payload: {
+        diff: selectedDiff.diff,
+        id: selectedDiff.id,
+        description: selectedDiff.description,
+        labels: selectedDiff.labels,
+      },
+    })
   }
 
   const stopGenerate = () => {
-    abortCtrl.current?.abort()
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'stop' })
+    }
   }
 
   return (
